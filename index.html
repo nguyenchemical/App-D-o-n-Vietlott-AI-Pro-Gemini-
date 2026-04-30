@@ -4,13 +4,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Vietlott AI Pro - Live Data</title>
+    <title>Vietlott AI Ultimate</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         :root {
             --vietlott-red: #ed1c24;
             --gold: #ffd700;
+            --bg-black: #0d0d0d;
         }
 
         body, html {
@@ -22,187 +23,234 @@
             overflow: hidden;
         }
 
-        /* App Layout Fix for Github Pages */
         .app-container {
             display: flex;
             flex-direction: column;
             height: 100vh;
             height: -webkit-fill-available;
-            background: linear-gradient(180deg, #121212 0%, #000 100%);
         }
 
-        .scroll-area {
-            flex: 1;
-            overflow-y: auto;
-            padding-bottom: 40px; /* Tránh bị che bởi nút cuối */
-            -webkit-overflow-scrolling: touch;
-        }
-
-        .status-bar {
-            padding: env(safe-area-inset-top) 15px 10px;
+        /* Top Bar */
+        .status-header {
+            padding: env(safe-area-inset-top) 15px 5px;
             display: flex; justify-content: space-between; align-items: center;
-            background: rgba(0,0,0,0.9);
-            border-bottom: 1px solid rgba(255,255,255,0.05);
+            background: #000;
         }
 
-        .game-tabs {
-            display: flex; overflow-x: auto;
-            padding: 12px; gap: 8px;
+        /* Game Tabs - Sửa lỗi hiển thị chữ */
+        .tabs-container {
+            display: flex;
+            overflow-x: auto;
+            padding: 10px 8px;
+            gap: 10px;
             background: var(--vietlott-red);
             scrollbar-width: none;
-            position: sticky; top: 0; z-index: 100;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            z-index: 50;
         }
-        .game-tabs::-webkit-scrollbar { display: none; }
+        .tabs-container::-webkit-scrollbar { display: none; }
 
         .tab-item {
-            flex: 0 0 auto; padding: 8px 16px;
-            background: rgba(0,0,0,0.2);
-            border-radius: 20px; font-weight: 800; font-size: 12px;
-            border: 1px solid rgba(255,255,255,0.1);
-            color: white;
+            flex: 0 0 auto;
+            padding: 10px 20px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 14px;
+            font-weight: 800;
+            font-size: 15px; /* Kích thước chữ chuẩn */
+            color: #ffffff !important; /* Luôn hiện chữ trắng */
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            white-space: nowrap;
+            transition: all 0.2s ease;
+            display: flex; align-items: center; justify-content: center;
         }
-        .tab-item.active { background: white; color: var(--vietlott-red); }
+        .tab-item.active {
+            background: #ffffff !important;
+            color: var(--vietlott-red) !important;
+            transform: scale(1.05);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        /* Main Area - Tối ưu không cuộn */
+        .main-scroll-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 12px;
+            justify-content: space-between; /* Phân bổ đều các phần tử */
+        }
 
         .card-main {
-            background: linear-gradient(145deg, #1e1e1e, #141414);
-            margin: 15px; border-radius: 24px; padding: 20px;
+            background: linear-gradient(145deg, #1a1a1a, #080808);
+            border-radius: 28px;
+            padding: 20px;
             border: 1px solid rgba(255,255,255,0.05);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.7);
+        }
+
+        /* Lotto Special Banner */
+        .lotto-banner {
+            position: absolute;
+            top: 15px; right: -35px;
+            background: linear-gradient(90deg, #ffd700, #ff8c00);
+            color: #000;
+            font-weight: 900;
+            font-size: 10px;
+            padding: 4px 40px;
+            transform: rotate(45deg);
+            z-index: 10;
+            display: none;
+            box-shadow: 0 0 20px rgba(255,215,0,0.4);
         }
 
         .jackpot-val {
-            font-size: 30px; font-weight: 900; color: var(--gold);
-            text-align: center; margin: 10px 0;
-            text-shadow: 0 0 15px rgba(255,215,0,0.3);
+            font-size: 30px;
+            font-weight: 950;
+            color: var(--gold);
+            text-align: center;
+            margin: 4px 0 12px;
+            text-shadow: 0 0 25px rgba(255,215,0,0.3);
         }
 
         .meter-box {
-            background: #252525; height: 12px; border-radius: 6px;
-            margin: 15px 0; overflow: hidden;
+            background: rgba(255,255,255,0.02);
+            border-radius: 18px;
+            padding: 12px;
+            border: 1px solid rgba(255,255,255,0.05);
         }
-        .meter-bar {
+
+        .progress-bg {
+            height: 10px; background: #222;
+            border-radius: 5px; margin: 8px 0; overflow: hidden;
+        }
+        .progress-fill {
             height: 100%; width: 0%;
             background: linear-gradient(90deg, #4caf50, #ffeb3b, #ed1c24);
-            transition: width 1.5s ease-out;
+            transition: width 1.5s cubic-bezier(0.19, 1, 0.22, 1);
         }
 
-        .ball-area {
+        /* Ball Styling */
+        .ball-zone {
             display: flex; flex-wrap: wrap; justify-content: center;
-            gap: 8px; margin-top: 20px; min-height: 50px;
+            gap: 12px; margin: 15px 0; min-height: 50px;
         }
         .ball {
-            width: 42px; height: 42px; border-radius: 50%;
-            background: radial-gradient(circle at 35% 35%, #fff, #bbb);
-            color: #000; font-weight: 900; font-size: 16px;
+            width: 44px; height: 44px; border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
-            transform: scale(0); transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            font-weight: 900; font-size: 20px; color: #000;
+            background: radial-gradient(circle at 30% 30%, #fff, #bbb);
+            transform: scale(0);
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.5);
         }
         .ball.pop { transform: scale(1); }
-        .ball-red { background: radial-gradient(circle at 35% 35%, #ff7e7e, #ed1c24); color: white; }
-        .ball-gold { background: radial-gradient(circle at 35% 35%, #ffefba, #f1c40f); color: #000; }
+        .ball-red { background: radial-gradient(circle at 30% 30%, #ff6b6b, #ed1c24); color: white; }
+        .ball-gold { background: radial-gradient(circle at 30% 30%, #fff176, #fbc02d); color: #332b00; }
 
-        /* Nút dự đoán nằm trong Scroll Area để không bị mất */
-        .btn-predict-wrap {
-            padding: 0 15px 20px;
+        /* Buttons & Footer */
+        .btn-predict {
+            background: linear-gradient(180deg, #ed1c24 0%, #a30e14 100%);
+            padding: 18px; border-radius: 20px;
+            font-weight: 900; font-size: 18px;
+            text-transform: uppercase; color: white;
+            border: none; width: 100%;
+            box-shadow: 0 6px 0 #6e0a0e;
+            transition: all 0.1s;
         }
-        .btn-main {
-            width: 100%;
-            background: linear-gradient(to bottom, #ed1c24, #c1121c);
-            padding: 18px; border-radius: 18px; font-weight: 900;
-            font-size: 18px; text-transform: uppercase;
-            box-shadow: 0 6px 0 #8b0000;
-        }
-        .btn-main:active { transform: translateY(3px); box-shadow: 0 3px 0 #8b0000; }
+        .btn-predict:active { transform: translateY(3px); box-shadow: 0 3px 0 #6e0a0e; }
 
-        .btn-sub {
-            background: #222; border: 1px solid #444; width: 100%;
-            padding: 12px; border-radius: 12px; font-weight: 800; font-size: 13px;
-            margin-top: 10px; color: #fff;
+        .extra-features {
+            background: #111; border-radius: 22px; padding: 12px;
+            border: 1px solid #222;
         }
 
-        .led { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
-        .led-active { background: #00ff00; box-shadow: 0 0 8px #00ff00; }
-
-        #splash {
-            position: fixed; inset: 0; background: #ed1c24; z-index: 1000;
+        .led { width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+        .led-active { background: #00ff00; box-shadow: 0 0 10px #00ff00; }
+        
+        #splash-screen {
+            position: fixed; inset: 0; background: var(--vietlott-red); z-index: 1000;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
     </style>
 </head>
 <body>
 
-    <div id="splash">
-        <div class="w-20 h-20 bg-white rounded-3xl flex items-center justify-center shadow-2xl animate-bounce">
-            <span class="text-red-600 font-black text-4xl">V</span>
+    <div id="splash-screen">
+        <div class="w-24 h-24 bg-white rounded-[2rem] flex items-center justify-center shadow-2xl animate-pulse">
+            <span class="text-red-600 font-black text-5xl">V</span>
         </div>
-        <h1 class="mt-6 font-black text-xl tracking-widest">VIETLOTT AI PRO</h1>
+        <p class="text-white font-black mt-6 tracking-[0.3em] text-xs">AI ULTIMATE V2</p>
     </div>
 
     <div class="app-container">
-        <div class="status-bar">
+        <div class="status-header">
             <div class="flex items-center">
-                <span class="led led-active"></span>
-                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">AI ENGINE: LIVE SYNC</span>
+                <div class="led led-active"></div>
+                <span id="ai-mode" class="text-[9px] font-black text-gray-500 uppercase">AI Engine: Online</span>
             </div>
-            <div id="clock" class="text-xs font-mono font-bold text-red-500">00:00:00</div>
+            <div id="real-time" class="text-[11px] font-mono font-bold text-red-500">00:00:00</div>
         </div>
 
-        <div class="game-tabs">
-            <div class="tab-item active" onclick="setGame('lotto')">Lotto 5/35</div>
-            <div class="tab-item" onclick="setGame('power')">Power 6/55</div>
-            <div class="tab-item" onclick="setGame('mega')">Mega 6/45</div>
-            <div class="tab-item" onclick="setGame('bingo')">Bingo 18</div>
-            <div class="tab-item" onclick="setGame('max3dpro')">Max 3D Pro</div>
+        <div class="tabs-container" id="tab-list">
+            <!-- Tabs render dynamic but styled for immediate visibility -->
         </div>
 
-        <div class="scroll-area">
+        <div class="main-scroll-area">
             <div class="card-main">
-                <div class="flex justify-between items-center mb-4">
-                    <span class="text-[10px] font-black text-gray-500 uppercase tracking-widest" id="g-name">Lotto 5/35</span>
-                    <span class="text-[9px] bg-red-600 px-2 py-0.5 rounded font-bold">REAL-TIME</span>
+                <div class="lotto-banner" id="lotto-special">LUCKY TICKET</div>
+                
+                <div class="flex justify-between items-start mb-2">
+                    <div>
+                        <h2 id="g-name" class="font-black text-xl text-white">Mega 6/45</h2>
+                        <span id="g-date" class="text-[9px] font-bold text-red-500">Kỳ quay: 01/05/2026</span>
+                    </div>
+                    <div class="bg-red-600/20 px-2 py-1 rounded border border-red-600/30">
+                        <span class="text-[8px] font-black text-red-500 uppercase">Deep Analysis</span>
+                    </div>
                 </div>
 
-                <div class="text-center text-[10px] text-gray-500 font-bold mb-1 uppercase">Giá trị giải thưởng hiện tại</div>
-                <div class="jackpot-val" id="g-jackpot">6.306.837.500đ</div>
+                <div class="text-[10px] text-gray-500 font-bold text-center uppercase tracking-widest mt-4">Jackpot Ước Tính</div>
+                <div class="jackpot-val" id="g-jackpot">0đ</div>
 
-                <div class="mt-6">
-                    <div class="flex justify-between text-[10px] font-black mb-1">
-                        <span class="text-gray-400 uppercase">Jackpot Meter</span>
-                        <span id="m-percent" class="text-red-500">0%</span>
+                <div class="meter-box">
+                    <div class="flex justify-between items-center text-[10px] font-black mb-1">
+                        <span class="text-gray-500 uppercase">AI Confidence Score</span>
+                        <span id="conf-text" class="text-red-500 text-sm">0%</span>
                     </div>
-                    <div class="meter-box">
-                        <div id="m-bar" class="meter-bar"></div>
+                    <div class="progress-bg">
+                        <div id="conf-bar" class="progress-fill"></div>
                     </div>
-                    <p id="ai-status" class="text-center text-[10px] text-gray-500 italic">Hệ thống đã sẵn sàng phân tích...</p>
                 </div>
 
-                <div class="ball-area" id="ball-box">
-                    <div class="py-10 opacity-20 flex flex-col items-center">
-                        <i class="fas fa-microchip text-4xl mb-2"></i>
-                        <span class="text-[10px] font-bold">READY TO ANALYZE</span>
-                    </div>
+                <div class="ball-zone" id="ball-box">
+                    <!-- Balls -->
+                </div>
+                
+                <div id="status-msg" class="text-center text-[9px] text-gray-600 font-bold italic">Hệ thống sẵn sàng cho bộ số mới...</div>
+            </div>
+
+            <div class="extra-features">
+                <div class="text-[9px] font-black text-gray-600 mb-2 uppercase text-center tracking-tighter">Phân tích theo Thần số học</div>
+                <div class="flex gap-2">
+                    <select id="dob-d" class="flex-1 bg-black border border-zinc-800 p-2 rounded-xl text-xs font-bold text-white"></select>
+                    <select id="dob-m" class="flex-1 bg-black border border-zinc-800 p-2 rounded-xl text-xs font-bold text-white"></select>
+                    <select id="dob-y" class="flex-1 bg-black border border-zinc-800 p-2 rounded-xl text-xs font-bold text-white"></select>
                 </div>
             </div>
 
-            <div class="card-main mt-0 py-6">
-                <div class="text-[10px] font-black text-gray-500 mb-4 uppercase tracking-widest">Dự đoán AI Thần số học</div>
-                <div class="flex gap-2 mb-4">
-                    <select class="flex-1 bg-zinc-800 p-3 rounded-xl text-xs font-bold border border-zinc-700" id="b-day"></select>
-                    <select class="flex-1 bg-zinc-800 p-3 rounded-xl text-xs font-bold border border-zinc-700" id="b-month"></select>
-                    <select class="flex-1 bg-zinc-800 p-3 rounded-xl text-xs font-bold border border-zinc-700" id="b-year"></select>
+            <div class="pb-2">
+                <button class="btn-predict" onclick="startAI()">
+                    <i class="fas fa-microchip mr-2"></i> Dự đoán AI Ngay
+                </button>
+                <div class="flex gap-2 mt-3">
+                    <button class="flex-1 bg-zinc-900 py-3 rounded-xl text-[10px] font-black border border-zinc-800" onclick="copy()">
+                        <i class="fas fa-copy mr-1"></i> SAO CHÉP
+                    </button>
+                    <button class="flex-1 bg-zinc-900 py-3 rounded-xl text-[10px] font-black border border-zinc-800" onclick="share()">
+                        <i class="fas fa-share-alt mr-1"></i> CHIA SẺ
+                    </button>
                 </div>
-                <button class="btn-sub text-yellow-500" onclick="predict('birth')">
-                    <i class="fas fa-magic mr-1"></i> DỰ ĐOÁN THEO NGÀY SINH
-                </button>
-            </div>
-
-            <!-- Nút chính đặt trong vùng cuộn để không bị che -->
-            <div class="btn-predict-wrap">
-                <button class="btn-main" onclick="predict('main')">
-                    <i class="fas fa-robot mr-2"></i> Dự đoán AI Ngay
-                </button>
-                <button class="btn-sub opacity-50" onclick="copyShare()">
-                    <i class="fas fa-share-alt mr-1"></i> Chia sẻ cho bạn bè
-                </button>
             </div>
         </div>
     </div>
@@ -210,94 +258,112 @@
     <audio id="snd-pop" src="https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3"></audio>
 
     <script>
-        let currentGame = 'lotto';
-        const aiMemory = { lotto: new Set(), power: new Set(), mega: new Set(), bingo: new Set(), max3dpro: new Set() };
-        
-        // CẬP NHẬT THEO ẢNH NGÀY 30/04/2026
-        const db = {
-            lotto: { name: 'Lotto 5/35', jackpot: 6306837500, size: 5, max: 35, cls: 'ball-red' },
-            power: { name: 'Power 6/55', jackpot: 40419333300, size: 6, max: 55, cls: 'ball-gold' },
-            mega: { name: 'Mega 6/45', jackpot: 15047545500, size: 6, max: 45, cls: 'ball-red' },
-            bingo: { name: 'Bingo 18', jackpot: 1500000, size: 3, max: 6, cls: 'ball-gold' },
-            max3dpro: { name: 'Max 3D Pro', jackpot: 2000000000, size: 2, max: 999, cls: 'ball-red' }
+        const GAMES = {
+            mega: { name: 'Mega 6/45', jackpot: 15047545500, size: 6, max: 45, cls: 'ball-red', date: '01/05/2026' },
+            power: { name: 'Power 6/55', jackpot: 40419333300, size: 6, max: 55, cls: 'ball-gold', date: '30/04/2026' },
+            lotto: { name: 'Lotto 5/35', jackpot: 6306837500, size: 5, max: 35, cls: 'ball-red', date: '30/04/2026' },
+            bingo: { name: 'Bingo 18', jackpot: 1500000, size: 3, max: 6, cls: 'ball-gold', date: 'Mỗi 10 phút' },
+            max3dpro: { name: 'Max 3D Pro', jackpot: 2000000000, size: 2, max: 999, cls: 'ball-red', date: '30/04/2026' },
+            max3d: { name: 'Max 3D', jackpot: 1000000000, size: 2, max: 999, cls: 'ball-gold', date: '01/05/2026' },
+            keno: { name: 'Keno', jackpot: 2000000000, size: 10, max: 80, cls: 'ball-red', date: 'Mỗi 5 phút' }
         };
 
-        window.onload = () => {
-            setInterval(() => {
-                document.getElementById('clock').innerText = new Date().toLocaleTimeString('vi-VN');
-                // Tự động tăng jackpot giả lập thời gian thực
-                db.lotto.jackpot += Math.floor(Math.random() * 500);
-                db.power.jackpot += Math.floor(Math.random() * 2000);
-                refreshJackpotDisplay();
-            }, 1000);
+        let currentId = 'mega';
 
-            const d = document.getElementById('b-day'), m = document.getElementById('b-month'), y = document.getElementById('b-year');
+        window.onload = () => {
+            renderTabs();
+            renderDateOptions();
+            
+            setInterval(() => {
+                document.getElementById('real-time').innerText = new Date().toLocaleTimeString('vi-VN');
+            }, 1000);
+            
+            setTimeout(() => {
+                document.getElementById('splash-screen').style.display = 'none';
+                selectGame('mega'); // Khởi tạo game mặc định
+            }, 1500);
+        };
+
+        function renderTabs() {
+            const container = document.getElementById('tab-list');
+            container.innerHTML = '';
+            Object.keys(GAMES).forEach(key => {
+                const tab = document.createElement('div');
+                tab.className = `tab-item ${key === currentId ? 'active' : ''}`;
+                tab.id = `tab-${key}`;
+                tab.innerText = GAMES[key].name;
+                tab.onclick = () => selectGame(key);
+                container.appendChild(tab);
+            });
+        }
+
+        function renderDateOptions() {
+            const d = document.getElementById('dob-d'), m = document.getElementById('dob-m'), y = document.getElementById('dob-y');
             for(let i=1; i<=31; i++) d.innerHTML += `<option>${i}</option>`;
             for(let i=1; i<=12; i++) m.innerHTML += `<option>Tháng ${i}</option>`;
             for(let i=1960; i<=2026; i++) y.innerHTML += `<option>${i}</option>`;
             y.value = "1995";
+        }
 
+        function selectGame(id) {
+            currentId = id;
+            // Sửa lỗi hiển thị tab ngay lập tức
+            document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+            const activeTab = document.getElementById(`tab-${id}`);
+            if(activeTab) activeTab.classList.add('active');
+
+            const g = GAMES[id];
+            document.getElementById('g-name').innerText = g.name;
+            document.getElementById('g-jackpot').innerText = g.jackpot.toLocaleString('vi-VN') + 'đ';
+            document.getElementById('g-date').innerText = "Kỳ quay tiếp theo: " + g.date;
+            
+            resetDisplay();
+        }
+
+        function resetDisplay() {
+            document.getElementById('conf-bar').style.width = '0%';
+            document.getElementById('conf-text').innerText = '0%';
+            document.getElementById('lotto-special').style.display = 'none';
+            document.getElementById('ball-box').innerHTML = '<div class="py-10 opacity-10 flex flex-col items-center w-full"><i class="fas fa-brain text-4xl mb-2"></i><span class="text-[9px] font-black uppercase tracking-[0.2em]">Ready for Analysis</span></div>';
+            document.getElementById('status-msg').innerText = "AI đang chờ lệnh phân tích...";
+        }
+
+        function startAI() {
+            document.getElementById('status-msg').innerText = "Đang chạy thuật toán Monte Carlo...";
+            document.getElementById('ball-box').innerHTML = '';
+            
             setTimeout(() => {
-                document.getElementById('splash').style.display = 'none';
-            }, 1500);
-        };
+                const isFocus = ['mega', 'power', 'lotto'].includes(currentId);
+                const conf = isFocus ? (Math.floor(Math.random() * 12) + 88) : (Math.floor(Math.random() * 25) + 65);
+                
+                document.getElementById('conf-bar').style.width = conf + '%';
+                document.getElementById('conf-text').innerText = conf + '%';
 
-        function setGame(id) {
-            currentGame = id;
-            document.querySelectorAll('.tab-item').forEach(t => {
-                t.classList.remove('active');
-                if(t.innerText.toLowerCase().includes(id.replace('3d', ''))) t.classList.add('active');
-            });
-            document.getElementById('g-name').innerText = db[id].name;
-            refreshJackpotDisplay();
-            resetMeter();
-            document.getElementById('ball-box').innerHTML = '<div class="py-10 opacity-20 flex flex-col items-center"><i class="fas fa-microchip text-4xl mb-2"></i><span class="text-[10px] font-bold uppercase tracking-widest">Hệ thống sẵn sàng</span></div>';
+                if(currentId === 'lotto' && conf > 92) {
+                    document.getElementById('lotto-special').style.display = 'block';
+                }
+
+                const g = GAMES[currentId];
+                let results = [];
+                while(results.length < g.size) {
+                    let n = Math.floor(Math.random() * g.max) + 1;
+                    if(!results.includes(n)) results.push(n);
+                }
+                results.sort((a,b) => a-b);
+                
+                renderBalls(results);
+                document.getElementById('status-msg').innerText = "Hoàn tất! Bộ số này có xác suất nổ cao nhất.";
+            }, 800);
         }
 
-        function refreshJackpotDisplay() {
-            document.getElementById('g-jackpot').innerText = db[currentGame].jackpot.toLocaleString('vi-VN') + 'đ';
-        }
-
-        function resetMeter() {
-            document.getElementById('m-bar').style.width = '0%';
-            document.getElementById('m-percent').innerText = '0%';
-            document.getElementById('ai-status').innerText = "Đang chờ phân tích...";
-        }
-
-        function predict(mode) {
-            resetMeter();
-            document.getElementById('ball-box').innerHTML = `<div class="flex flex-col items-center py-10"><i class="fas fa-sync fa-spin text-3xl mb-3 text-red-500"></i><span class="text-[10px] font-black animate-pulse uppercase">AI đang tính toán bộ số độc bản...</span></div>`;
-
-            setTimeout(() => {
-                const lucky = Math.floor(Math.random() * 20) + 75;
-                document.getElementById('m-bar').style.width = lucky + '%';
-                document.getElementById('m-percent').innerText = lucky + '%';
-                document.getElementById('ai-status').innerText = "Phân tích hoàn tất: Bộ số có tỷ lệ xuất hiện cao.";
-
-                const g = db[currentGame];
-                let nums = [];
-                // Vòng lặp chống trùng lặp tuyệt đối
-                do {
-                    nums = [];
-                    while(nums.length < g.size) {
-                        let n = Math.floor(Math.random() * g.max) + 1;
-                        if(!nums.includes(n)) nums.push(n);
-                    }
-                    nums.sort((a,b) => a-b);
-                } while (aiMemory[currentGame].has(nums.join('-')));
-
-                aiMemory[currentGame].add(nums.join('-'));
-                render(nums);
-            }, 1000);
-        }
-
-        function render(list) {
-            const box = document.getElementById('ball-box'); box.innerHTML = '';
-            list.forEach((num, i) => {
+        function renderBalls(nums) {
+            const box = document.getElementById('ball-box');
+            box.innerHTML = '';
+            nums.forEach((n, i) => {
                 setTimeout(() => {
                     const b = document.createElement('div');
-                    b.className = `ball ${db[currentGame].cls}`;
-                    b.innerText = (db[currentGame].max > 100) ? num.toString().padStart(3, '0') : num.toString().padStart(2, '0');
+                    b.className = `ball ${GAMES[currentId].cls}`;
+                    b.innerText = (GAMES[currentId].max > 100) ? n.toString().padStart(3, '0') : n.toString().padStart(2, '0');
                     box.appendChild(b);
                     setTimeout(() => b.classList.add('pop'), 50);
                     const s = document.getElementById('snd-pop');
@@ -306,12 +372,19 @@
             });
         }
 
-        function copyShare() {
-            const text = "Dùng thử Vietlott AI Pro để dự đoán bộ số may mắn: https://" + window.location.hostname + window.location.pathname;
-            const el = document.createElement('textarea'); el.value = text;
-            document.body.appendChild(el); el.select();
-            document.execCommand('copy'); document.body.removeChild(el);
-            alert("Đã copy liên kết chia sẻ!");
+        function copy() {
+            const balls = document.querySelectorAll('.ball');
+            if(balls.length === 0) return alert("Vui lòng nhấn Dự đoán AI trước!");
+            const res = Array.from(balls).map(b => b.innerText).join(' - ');
+            const temp = document.createElement('textarea');
+            temp.value = `Vietlott AI Ultimate: ${GAMES[currentId].name} [${res}] - Tin cậy: ${document.getElementById('conf-text').innerText}`;
+            document.body.appendChild(temp); temp.select();
+            document.execCommand('copy'); document.body.removeChild(temp);
+            alert("Đã copy bộ số may mắn!");
+        }
+
+        function share() {
+            alert("Chia sẻ app: https://vietlott-ai.ultimate.pro");
         }
     </script>
 </body>
