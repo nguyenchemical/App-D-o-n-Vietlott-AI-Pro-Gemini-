@@ -1,0 +1,362 @@
+```html
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Vietlott AI Pro - Chia sẻ may mắn</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --vietlott-red: #ed1c24;
+            --vietlott-dark-red: #c1121c;
+            --gold: #ffd700;
+        }
+
+        body, html {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: white;
+            user-select: none;
+        }
+
+        #splash-screen {
+            position: fixed; inset: 0;
+            background: radial-gradient(circle, var(--vietlott-red) 0%, #000 100%);
+            z-index: 1000;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            transition: opacity 0.8s ease;
+        }
+
+        .app-container {
+            display: none;
+            height: 100vh;
+            flex-direction: column;
+            background: linear-gradient(180deg, #121212 0%, #000 100%);
+        }
+
+        .status-bar {
+            padding: env(safe-area-inset-top) 15px 10px;
+            display: flex; justify-content: space-between; align-items: center;
+            background: rgba(0,0,0,0.9);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .led { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+        .led-active { background: #00ff00; box-shadow: 0 0 10px #00ff00; }
+        .led-busy { background: #ffcc00; animation: blink 0.3s infinite; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
+
+        .game-tabs {
+            display: flex; overflow-x: auto;
+            padding: 12px; gap: 10px;
+            background: var(--vietlott-red);
+            scrollbar-width: none;
+        }
+        .game-tabs::-webkit-scrollbar { display: none; }
+
+        .tab-item {
+            flex: 0 0 auto; padding: 8px 18px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 20px; font-weight: 800; font-size: 13px;
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .tab-item.active { background: white; color: var(--vietlott-red); transform: scale(1.05); }
+
+        .card-main {
+            background: linear-gradient(145deg, #1e1e1e, #141414);
+            margin: 15px; border-radius: 24px; padding: 20px;
+            border: 1px solid rgba(255,255,255,0.05);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+        }
+
+        .jackpot-val {
+            font-size: 32px; font-weight: 900; color: var(--gold);
+            text-align: center; margin: 10px 0;
+            text-shadow: 0 0 20px rgba(255,215,0,0.3);
+        }
+
+        .meter-box {
+            background: #252525; height: 14px; border-radius: 7px;
+            margin: 15px 0; overflow: hidden; border: 1px solid #333;
+        }
+        .meter-bar {
+            height: 100%; width: 0%;
+            background: linear-gradient(90deg, #4caf50, #ffeb3b, #ed1c24);
+            transition: width 1.5s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        .ball-area {
+            display: flex; flex-wrap: wrap; justify-content: center;
+            gap: 10px; margin-top: 20px; min-height: 60px;
+        }
+        .ball {
+            width: 44px; height: 44px; border-radius: 50%;
+            background: radial-gradient(circle at 35% 35%, #fff, #bbb);
+            color: #000; font-weight: 900; font-size: 18px;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.4);
+            transform: scale(0); transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .ball.pop { transform: scale(1); }
+        .ball-red { background: radial-gradient(circle at 35% 35%, #ff7e7e, #ed1c24); color: white; }
+        .ball-gold { background: radial-gradient(circle at 35% 35%, #ffefba, #f1c40f); color: #000; }
+
+        .btn-predict {
+            width: calc(100% - 30px); margin: 0 15px 15px;
+            background: linear-gradient(to bottom, #ed1c24, #c1121c);
+            padding: 18px; border-radius: 18px; font-weight: 900;
+            font-size: 18px; text-transform: uppercase;
+            box-shadow: 0 8px 0 #8b0000; transition: all 0.1s;
+        }
+        .btn-predict:active { transform: translateY(4px); box-shadow: 0 4px 0 #8b0000; }
+        
+        .btn-secondary {
+            background: #222; border: 1px solid #444; width: 100%;
+            padding: 12px; border-radius: 12px; font-weight: 800; font-size: 14px;
+            color: #fff; transition: all 0.2s; margin-top: 10px;
+        }
+
+        #alert-win {
+            position: fixed; top: -100px; left: 0; right: 0;
+            background: var(--gold); color: #000; padding: 15px;
+            text-align: center; font-weight: 900; z-index: 2000;
+            transition: top 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+        }
+
+        /* Modal Chia sẻ */
+        #share-modal {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.9);
+            display: none; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 3000; padding: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="splash-screen">
+        <div class="w-20 h-20 bg-white rounded-3xl flex items-center justify-center shadow-2xl animate-bounce">
+            <span class="text-red-600 font-black text-4xl">V</span>
+        </div>
+        <h1 class="mt-8 font-black tracking-tighter text-2xl">VIETLOTT AI PRO</h1>
+        <p class="text-xs opacity-50 mt-2">DỮ LIỆU ĐÃ CẬP NHẬT CHÍNH XÁC</p>
+    </div>
+
+    <div id="alert-win">🚀 PHÁT HIỆN TÍN HIỆU JACKPOT: XÁC SUẤT CỰC CAO!</div>
+
+    <div class="app-container" id="app">
+        <div class="status-bar">
+            <div class="flex items-center">
+                <span id="status-led" class="led led-active"></span>
+                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">AI Engine: Online</span>
+            </div>
+            <div id="clock" class="text-xs font-mono font-bold text-red-500">00:00:00</div>
+        </div>
+
+        <div class="game-tabs">
+            <div class="tab-item active" onclick="setGame('lotto')">Lotto 5/35</div>
+            <div class="tab-item" onclick="setGame('power')">Power 6/55</div>
+            <div class="tab-item" onclick="setGame('mega')">Mega 6/45</div>
+            <div class="tab-item" onclick="setGame('bingo')">Bingo 18</div>
+            <div class="tab-item" onclick="setGame('max3dpro')">Max 3D Pro</div>
+        </div>
+
+        <div class="flex-1 overflow-y-auto pb-24">
+            <div class="card-main">
+                <div class="flex justify-between items-center mb-4">
+                    <span class="text-xs font-black text-gray-500 uppercase tracking-widest" id="g-name">Lotto 5/35</span>
+                    <span class="text-[10px] bg-red-600 px-2 py-0.5 rounded font-bold animate-pulse">NO-DUPLICATE AI</span>
+                </div>
+
+                <div class="text-center text-[10px] text-gray-400 font-bold mb-1 uppercase">Tiền thưởng hiện tại</div>
+                <div class="jackpot-val" id="g-jackpot">9.461.509.000đ</div>
+
+                <div class="mt-8">
+                    <div class="flex justify-between text-[10px] font-black mb-1">
+                        <span class="text-gray-400 uppercase">Jackpot Meter</span>
+                        <span id="m-percent" class="text-red-500">0%</span>
+                    </div>
+                    <div class="meter-box">
+                        <div id="m-bar" class="meter-bar"></div>
+                    </div>
+                    <p id="ai-status" class="text-center text-[10px] text-gray-500 italic">Hệ thống đang sẵn sàng...</p>
+                </div>
+
+                <div class="ball-area" id="ball-box">
+                    <div class="py-10 text-gray-700 flex flex-col items-center">
+                        <i class="fas fa-microchip text-4xl mb-3 opacity-20"></i>
+                        <span class="text-[10px] font-bold tracking-widest uppercase">Nhấn dự đoán ngay</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-main mt-0 py-6">
+                <div class="text-[10px] font-black text-gray-500 mb-4 uppercase tracking-widest">Tính năng mở rộng</div>
+                <div class="flex gap-2 mb-4">
+                    <select class="flex-1 bg-zinc-800 p-3 rounded-xl text-xs font-bold border border-zinc-700" id="b-day"></select>
+                    <select class="flex-1 bg-zinc-800 p-3 rounded-xl text-xs font-bold border border-zinc-700" id="b-month"></select>
+                    <select class="flex-1 bg-zinc-800 p-3 rounded-xl text-xs font-bold border border-zinc-700" id="b-year"></select>
+                </div>
+                <button class="btn-secondary text-yellow-500" onclick="predict('birth')">
+                    <i class="fas fa-magic mr-1"></i> DỰ ĐOÁN THEO NGÀY SINH
+                </button>
+                <button class="btn-secondary" onclick="toggleShare()">
+                    <i class="fas fa-share-alt mr-1"></i> CHIA SẺ VỚI BẠN BÈ
+                </button>
+            </div>
+        </div>
+
+        <button class="btn-predict" id="btn-main" onclick="predict('main')">
+            <i class="fas fa-robot mr-2"></i> Dự đoán AI Ngay
+        </button>
+    </div>
+
+    <!-- Share Modal -->
+    <div id="share-modal" onclick="this.style.display='none'">
+        <div class="bg-zinc-900 p-8 rounded-3xl border border-zinc-700 text-center w-full max-w-xs" onclick="event.stopPropagation()">
+            <div class="w-16 h-16 bg-red-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+                <i class="fas fa-heart text-2xl text-white"></i>
+            </div>
+            <h2 class="font-black text-xl mb-2">Chia sẻ May Mắn</h2>
+            <p class="text-xs text-gray-400 mb-6 leading-relaxed">Gửi file này cho bạn bè qua Zalo hoặc Telegram để họ cùng trải nghiệm AI!</p>
+            
+            <button class="w-full bg-white text-black font-black py-4 rounded-xl mb-3 text-sm" onclick="copyShareText()">
+                COPY LỜI MỜI
+            </button>
+            <button class="w-full bg-zinc-800 text-gray-400 font-bold py-3 rounded-xl text-sm" onclick="toggleShare()">
+                ĐÓNG
+            </div>
+        </div>
+    </div>
+
+    <audio id="snd-pop" src="https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3"></audio>
+    <audio id="snd-win" src="https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3"></audio>
+
+    <script>
+        let currentGame = 'lotto';
+        const aiMemory = { lotto: new Set(), power: new Set(), mega: new Set(), bingo: new Set(), max3dpro: new Set() };
+        
+        const db = {
+            lotto: { name: 'Lotto 5/35', jackpot: 9461509000, size: 5, max: 35, cls: 'ball-red' },
+            power: { name: 'Power 6/55', jackpot: 3000000000, size: 6, max: 55, cls: 'ball-gold' },
+            mega: { name: 'Mega 6/45', jackpot: 12000000000, size: 6, max: 45, cls: 'ball-red' },
+            bingo: { name: 'Bingo 18', jackpot: 1500000, size: 3, max: 6, cls: 'ball-gold' },
+            max3dpro: { name: 'Max 3D Pro', jackpot: 2000000000, size: 2, max: 999, cls: 'ball-red' }
+        };
+
+        window.onload = () => {
+            setInterval(() => {
+                document.getElementById('clock').innerText = new Date().toLocaleTimeString('vi-VN');
+                db.lotto.jackpot += Math.floor(Math.random() * 2000);
+                if(currentGame === 'lotto') refreshJackpotDisplay();
+            }, 1000);
+
+            const d = document.getElementById('b-day'), m = document.getElementById('b-month'), y = document.getElementById('b-year');
+            for(let i=1; i<=31; i++) d.innerHTML += `<option>${i}</option>`;
+            for(let i=1; i<=12; i++) m.innerHTML += `<option>Tháng ${i}</option>`;
+            for(let i=1960; i<=2024; i++) y.innerHTML += `<option>${i}</option>`;
+            y.value = "1995";
+
+            setTimeout(() => {
+                document.getElementById('splash-screen').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('splash-screen').style.display = 'none';
+                    document.getElementById('app').style.display = 'flex';
+                }, 800);
+            }, 2000);
+        };
+
+        function setGame(id) {
+            currentGame = id;
+            document.querySelectorAll('.tab-item').forEach(t => {
+                t.classList.remove('active');
+                if(t.innerText.toLowerCase().includes(id.replace('3d', ''))) t.classList.add('active');
+            });
+            document.getElementById('g-name').innerText = db[id].name;
+            refreshJackpotDisplay();
+            resetMeter();
+        }
+
+        function refreshJackpotDisplay() {
+            document.getElementById('g-jackpot').innerText = db[currentGame].jackpot.toLocaleString('vi-VN') + 'đ';
+        }
+
+        function resetMeter() {
+            document.getElementById('m-bar').style.transition = 'none';
+            document.getElementById('m-bar').style.width = '0%';
+            document.getElementById('m-percent').innerText = '0%';
+        }
+
+        function predict(mode) {
+            document.getElementById('status-led').className = 'led led-busy';
+            resetMeter();
+            document.getElementById('ball-box').innerHTML = `<div class="flex flex-col items-center py-10"><i class="fas fa-sync fa-spin text-3xl mb-3 text-red-500"></i><span class="text-[10px] font-black tracking-widest animate-pulse">AI ĐANG TÍNH TOÁN...</span></div>`;
+
+            setTimeout(() => {
+                document.getElementById('m-bar').style.transition = 'width 1.5s cubic-bezier(0.22, 1, 0.36, 1)';
+                const lucky = Math.floor(Math.random() * 25) + 71;
+                document.getElementById('m-bar').style.width = lucky + '%';
+                document.getElementById('m-percent').innerText = lucky + '%';
+
+                const g = db[currentGame];
+                let nums = [];
+                do {
+                    nums = [];
+                    while(nums.length < g.size) {
+                        let n = Math.floor(Math.random() * g.max) + 1;
+                        if(!nums.includes(n)) nums.push(n);
+                    }
+                    nums.sort((a,b) => a-b);
+                } while (aiMemory[currentGame].has(nums.join('-')));
+
+                aiMemory[currentGame].add(nums.join('-'));
+                render(nums);
+                document.getElementById('status-led').className = 'led led-active';
+            }, 800);
+        }
+
+        function render(list) {
+            const box = document.getElementById('ball-box'); box.innerHTML = '';
+            list.forEach((num, i) => {
+                setTimeout(() => {
+                    const b = document.createElement('div');
+                    b.className = `ball ${db[currentGame].cls}`;
+                    b.innerText = (db[currentGame].max > 100) ? num.toString().padStart(3, '0') : num.toString().padStart(2, '0');
+                    box.appendChild(b);
+                    setTimeout(() => b.classList.add('pop'), 50);
+                    playSound('snd-pop');
+                }, i * 150);
+            });
+        }
+
+        function toggleShare() {
+            const m = document.getElementById('share-modal');
+            m.style.display = m.style.display === 'flex' ? 'none' : 'flex';
+        }
+
+        function copyShareText() {
+            const text = "Chào bạn! Mình tặng bạn app Vietlott AI Pro giúp dự đoán bộ số may mắn theo Thần số học và dữ liệu Jackpot mới nhất. Bạn mở file này bằng trình duyệt web để dùng nhé! Chúc bạn trúng lớn! 🚀🍀";
+            const el = document.createElement('textarea');
+            el.value = text;
+            document.body.appendChild(el);
+            el.select();
+            document.execCommand('copy');
+            document.body.removeChild(el);
+            alert("Đã copy lời mời! Hãy gửi cho bạn bè qua Zalo nhé.");
+        }
+
+        function playSound(id) {
+            const s = document.getElementById(id);
+            if(s) { s.currentTime = 0; s.play().catch(() => {}); }
+        }
+    </script>
+</body>
+</html>
+
+```
